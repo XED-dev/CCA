@@ -5,6 +5,34 @@ Alle bemerkenswerten Änderungen an `xed-cca` werden hier dokumentiert.
 Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.0.2] — 2026-05-03
+
+### Hinzugefügt
+
+- **`gnome.apply()` implementiert** — `cca install gnome` ist nicht mehr Stub.
+  Atomar (cca §9): nur Display-Stack. Codename-conditional Desktop-Meta-Paket
+  (`vanilla-gnome-desktop` für noble/jammy/focal, `gnome-core` für
+  bookworm/bullseye) plus `xrdp` + `xorgxrdp` + `dbus-x11`.
+  Apply-Schritte: Distro-Erkennung → apt-Install → `systemctl enable --now xrdp`
+  → Verifikation (dpkg-Status + service-active-Check).
+- **Pre-Flight-Check:** `apply()` wirft RuntimeError mit klarer Meldung wenn
+  nicht-root, wenn `/etc/os-release` fehlt, oder wenn der Codename nicht in
+  `CODENAME_DESKTOP_PACKAGE` registriert ist.
+
+### Geändert
+
+- `GnomeApp.is_implemented = True` (vorher `False`)
+- `GnomeApp.plan()` zeigt reduzierten atomaren Scope (5 Schritte statt 6:
+  SysOps-User + Wayland-Bind-mount entfernt — gehören in `ccc create pmDESK`).
+
+### Architektur-Notiz
+
+`cca`-Apps sind atomar (eine App, ein Stack). Container-Lifecycle-Aufgaben
+wie SysOps-User-Setup oder Wayland-Bind-mount gehören in `ccc`-Rollen-
+Kompositionen, nicht in `cca`-Apps.
+
+[0.0.2]: https://github.com/XED-dev/CCA/releases/tag/v0.0.2
+
 ## [0.0.1] — 2026-05-03
 
 ### Hinzugefügt
