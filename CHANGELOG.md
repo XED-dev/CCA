@@ -5,6 +5,44 @@ Alle bemerkenswerten Änderungen an `xed-cca` werden hier dokumentiert.
 Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.0.3] — 2026-05-04
+
+### Bug-Fix
+
+- **Snap-Redirect-Falle behoben** — auf Ubuntu 22.04+ ist `firefox` (und
+  auch `thunderbird` / `chromium-browser`) als snap-Redirect-deb publiziert.
+  Im LXC ohne lauffähigen snapd scheitert das Konfigurations-Skript des
+  Pakets, was `apt-get install vanilla-gnome-desktop` mit Recommends ON
+  bricht. Live-Apply v0.0.2 brach an genau dieser Stelle (5521-pmDESK
+  noble, AI036 Session 2026-05-04).
+
+### Hinzugefügt
+
+- **Self-Heal-Pre-Phase** in `apply()`:
+  1. `apt-get purge` für snap-Redirect-Pakete (firefox, thunderbird,
+     chromium-browser, gnome-software-plugin-snap, snapd)
+  2. `dpkg --configure -a` (finalisiert halb-konfigurierte Pakete)
+  3. `apt-get install -f -y` (fixt broken dependencies)
+  4. `apt-get autoremove --purge -y` (räumt orphaned locale-Pakete)
+
+  Idempotent: no-op auf sauberem System, voll-aktiv auf broken System.
+- **Mozilla Official APT-Repository** für Firefox-deb statt snap-Wrapper
+  via `_setup_mozilla_apt_repo()`. Codename-conditional: nur für Ubuntu
+  (noble/jammy/focal); Debian (bookworm/bullseye) hat firefox-esr ohne
+  snap-Wrapper und braucht das Repo nicht.
+- Recommends bleibt ON — vollständiger Desktop-Stack mit allen
+  Standard-Tools.
+
+### Architektur-Notiz
+
+`_setup_mozilla_apt_repo()` ist heute in `gnome.py` lokalisiert. Bei einem
+zweiten Konsumenten (z.B. künftiges `cca install thunderbird-deb`)
+extrahieren wir nach `cca/apt/repos.py` (Rule of Three).
+
+Pattern-Stein-Meißel: `reference_no_snap_in_lxc.md` (AI036, 2026-05-04).
+
+[0.0.3]: https://github.com/XED-dev/CCA/releases/tag/v0.0.3
+
 ## [0.0.2] — 2026-05-03
 
 ### Hinzugefügt

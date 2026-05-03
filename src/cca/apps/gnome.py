@@ -7,14 +7,18 @@ xorgxrdp + dbus-x11 als Display-Server-Subset.
 SysOps-User + Wayland-Bind-mount sind keine cca-Verantwortung —
 gehören in ``ccc create pmDESK`` als Komposition.
 
+v0.0.3: Self-Heal-Pre-Phase + Mozilla-APT-Repo für Firefox-deb statt
+snap-Wrapper (snapd ist im LXC unzuverlässig — Squashfs/udev/cgroups).
 Codename-Conditional folgt dem WordOps-Pattern aus AI034
-(`reference_wordops_install_quirks.md`).
+(`reference_wordops_install_quirks.md`). Snap-LXC-Pattern in
+`reference_no_snap_in_lxc.md`.
 """
 
 from __future__ import annotations
 
 import os
 import subprocess
+import urllib.request
 from pathlib import Path
 from typing import Iterable
 
@@ -39,6 +43,37 @@ DISPLAY_STACK_PACKAGES: tuple[str, ...] = (
     "dbus-x11",
 )
 
+# Codenames für die das Mozilla-APT-Repo gebraucht wird (Ubuntu mit snap-Falle).
+# Debian (bookworm/bullseye) hat firefox-esr ohne snap-Wrapper, kein Repo nötig.
+UBUNTU_CODENAMES: frozenset[str] = frozenset({"noble", "jammy", "focal"})
+
+# Snap-Redirect-Pakete auf Ubuntu 22.04+ — bricht im LXC weil snapd nicht
+# zuverlässig läuft (Squashfs-mount, udev, cgroups).
+# Pattern: reference_no_snap_in_lxc.md (AI036, 2026-05-04).
+SNAP_REDIRECT_PACKAGES: tuple[str, ...] = (
+    "firefox",
+    "thunderbird",
+    "chromium-browser",
+    "gnome-software-plugin-snap",
+    "snapd",
+)
+
+# Mozilla Official APT-Repository für Firefox + Thunderbird als deb.
+# Quelle: https://packages.mozilla.org/apt
+MOZILLA_APT_KEY_URL = "https://packages.mozilla.org/apt/repo-signing-key.gpg"
+MOZILLA_APT_KEYRING = "/etc/apt/keyrings/packages.mozilla.org.asc"
+MOZILLA_APT_SOURCES_FILE = "/etc/apt/sources.list.d/mozilla.list"
+MOZILLA_APT_PIN_FILE = "/etc/apt/preferences.d/mozilla"
+MOZILLA_APT_SOURCES_LINE = (
+    "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] "
+    "https://packages.mozilla.org/apt mozilla main"
+)
+MOZILLA_APT_PIN_CONTENT = (
+    "Package: *\n"
+    "Pin: origin packages.mozilla.org\n"
+    "Pin-Priority: 1000\n"
+)
+
 
 class GnomeApp(App):
     """gnome — Vanilla Gnome Desktop + xrdp Display-Stack (atomar)."""
@@ -56,9 +91,14 @@ class GnomeApp(App):
             ("2.", "Codename-conditional Desktop-Meta-Paket:"),
             ("",   "    noble/jammy/focal  -> vanilla-gnome-desktop"),
             ("",   "    bookworm/bullseye  -> gnome-core"),
-            ("3.", "apt-get update + apt-get install -y <Desktop-Meta> xrdp xorgxrdp dbus-x11"),
-            ("4.", "systemctl enable --now xrdp"),
-            ("5.", "Verifikation: dpkg-Status pro Paket + xrdp-Service aktiv"),
+            ("3.", "Self-Heal: snap-Redirect-Pakete entfernen"),
+            ("",   "    firefox, thunderbird, chromium-browser,"),
+            ("",   "    gnome-software-plugin-snap, snapd"),
+            ("4.", "Self-Heal: dpkg --configure -a + apt install -f + autoremove"),
+            ("5.", "Mozilla-APT-Repo (nur Ubuntu): Key + Sources + Pin (Priority 1000)"),
+            ("6.", "apt-get update + apt-get install -y <Desktop-Meta> xrdp xorgxrdp dbus-x11"),
+            ("7.", "systemctl enable --now xrdp"),
+            ("8.", "Verifikation: dpkg-Status pro Paket + xrdp-Service aktiv"),
         ]
         console.print("[bold]Geplante Schritte (atomar, Display-Stack only):[/bold]")
         for num, desc in steps:
@@ -75,6 +115,9 @@ class GnomeApp(App):
         console.print(f"[cyan]Display-Stack:[/cyan]   {' '.join(DISPLAY_STACK_PACKAGES)}")
         console.print()
 
+        self._self_heal_dpkg()
+        if codename in UBUNTU_CODENAMES:
+            self._setup_mozilla_apt_repo()
         self._apt_update()
         self._apt_install(all_packages)
         self._enable_xrdp_service()
@@ -120,6 +163,62 @@ class GnomeApp(App):
         env["DEBIAN_FRONTEND"] = "noninteractive"
         return env
 
+    def _self_heal_dpkg(self) -> None:
+        """Self-Heal-Pre-Phase. Idempotent: no-op auf sauberem System.
+
+        Vier Schritte:
+        1. Snap-Redirect-Pakete entfernen — bricht im LXC ohne snapd.
+        2. dpkg --configure -a — finalisiert halb-konfigurierte Pakete.
+        3. apt-get install -f -y — fixt broken dependencies.
+        4. apt-get autoremove --purge -y — räumt orphaned locale-Pakete.
+
+        check=False für 1+2 (dürfen scheitern wenn nicht broken),
+        check=True für 3+4 (wenn die scheitern, bricht alles).
+        """
+        console.print("[cyan]→ Self-Heal: snap-Redirect-Pakete entfernen[/cyan]")
+        subprocess.run(
+            ["apt-get", "purge", "-y", *SNAP_REDIRECT_PACKAGES],
+            env=self._apt_env(),
+            check=False,
+        )
+        console.print("[cyan]→ Self-Heal: dpkg --configure -a[/cyan]")
+        subprocess.run(
+            ["dpkg", "--configure", "-a"],
+            env=self._apt_env(),
+            check=False,
+        )
+        console.print("[cyan]→ Self-Heal: apt-get install -f -y[/cyan]")
+        subprocess.run(
+            ["apt-get", "install", "-f", "-y"],
+            env=self._apt_env(),
+            check=True,
+        )
+        console.print("[cyan]→ Self-Heal: apt-get autoremove --purge -y[/cyan]")
+        subprocess.run(
+            ["apt-get", "autoremove", "--purge", "-y"],
+            env=self._apt_env(),
+            check=True,
+        )
+
+    def _setup_mozilla_apt_repo(self) -> None:
+        """Setup Mozilla Official APT-Repository für Firefox-deb statt
+        snap-Wrapper. Idempotent: Files werden überschrieben, gleicher
+        Inhalt = no-op effektiv. APT-Pin (Priority 1000) schlägt das
+        Standard-Ubuntu-Archiv und verhindert dass der Wrapper-Wrapper-deb
+        den Mozilla-deb verdrängt.
+        """
+        console.print("[cyan]→ Mozilla-Repo: Keyring herunterladen[/cyan]")
+        Path("/etc/apt/keyrings").mkdir(parents=True, exist_ok=True)
+        with urllib.request.urlopen(MOZILLA_APT_KEY_URL, timeout=30) as response:
+            Path(MOZILLA_APT_KEYRING).write_bytes(response.read())
+        Path(MOZILLA_APT_KEYRING).chmod(0o644)
+
+        console.print(f"[cyan]→ Mozilla-Repo: {MOZILLA_APT_SOURCES_FILE}[/cyan]")
+        Path(MOZILLA_APT_SOURCES_FILE).write_text(MOZILLA_APT_SOURCES_LINE + "\n")
+
+        console.print(f"[cyan]→ Mozilla-Repo: APT-Pin {MOZILLA_APT_PIN_FILE}[/cyan]")
+        Path(MOZILLA_APT_PIN_FILE).write_text(MOZILLA_APT_PIN_CONTENT)
+
     def _apt_update(self) -> None:
         console.print("[cyan]→ apt-get update[/cyan]")
         subprocess.run(
@@ -131,6 +230,9 @@ class GnomeApp(App):
     def _apt_install(self, packages: Iterable[str]) -> None:
         pkgs = list(packages)
         console.print(f"[cyan]→ apt-get install -y {' '.join(pkgs)}[/cyan]")
+        # Recommends ON (Default) — vollständiger Desktop-Stack mit allen
+        # Standard-Tools. Snap-Falle ist durch _self_heal_dpkg +
+        # _setup_mozilla_apt_repo bereits abgewehrt.
         subprocess.run(
             ["apt-get", "install", "-y", *pkgs],
             env=self._apt_env(),
