@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XED /CCA — cBUZZ Container App-Installation</title>
+<meta name="description" content="Atomare App-Stack-Installation für LXC-Boxen. Pendant zu xed-ccc (Container-Lifecycle). MIT-lizenziert.">
+<style>
+  :root {
+    --fg: #1a1a1a;
+    --muted: #555;
+    --accent: #0066cc;
+    --bg: #fafafa;
+    --code-bg: #f0f0f0;
+    --border: #ddd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fg: #e8e8e8;
+      --muted: #999;
+      --accent: #6ab0ff;
+      --bg: #1a1a1a;
+      --code-bg: #2a2a2a;
+      --border: #444;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.6;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+  h1 { font-size: 2rem; margin: 0 0 0.25rem; }
+  h1 small { font-weight: normal; color: var(--muted); font-size: 1rem; display: block; margin-top: 0.25rem; }
+  h2 { margin-top: 2.5rem; font-size: 1.3rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+  h3 { margin-top: 1.5rem; font-size: 1.05rem; }
+  p, li { color: var(--fg); }
+  code {
+    background: var(--code-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.92em;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 0.85rem 1rem;
+    border-radius: 5px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  a { color: var(--accent); }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { border: 1px solid var(--border); padding: 0.4rem 0.6rem; text-align: left; }
+  th { background: var(--code-bg); }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+  }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<h1>XED /CCA
+  <small>cBUZZ Container App-Installation · Atomare App-Stacks für LXC-Boxen</small>
+</h1>
+
+<p>
+  <span class="badge"><code>cca</code> v0.0.1 Skelett</span>
+  <span class="badge">MIT</span>
+  <span class="badge"><a href="https://github.com/XED-dev/CCA">GitHub</a></span>
+  <span class="badge"><a href="https://pypi.org/project/xed-cca/">PyPI</a></span>
+  <span class="badge"><a href="https://ccc.xed.dev/">XED /CCC</a></span>
+</p>
+
+<h2>Architektur — zwei Tools, klare Trennung</h2>
+
+<table>
+  <thead>
+    <tr><th>Tool</th><th>Verantwortung</th><th>Beispiele</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>ccc</code></td><td>Container-Lifecycle + Rollen-Kompositionen</td><td><code>ccc create pmDESK</code></td></tr>
+    <tr><td><code>cca</code></td><td>Atomare App-Stack-Installation</td><td><code>cca install gnome</code> · <code>cca install ghost</code></td></tr>
+  </tbody>
+</table>
+
+<p>
+  <code>ccc</code>-Rollen rufen intern <code>cca</code>-Apps auf. Wer eine
+  maßgeschneiderte Box will, nutzt <code>cca</code> direkt. Wer eine
+  vorgefertigte Rolle will, nutzt <code>ccc create</code>.
+</p>
+
+<h2>Schnellstart</h2>
+
+<pre><code><span style="color:var(--muted)"># Variante A — automatisch via firstboot.sh Phase 7 (xed-ccc + xed-cca beide):</span>
+bash &lt;(curl -s https://ccc.xed.dev/firstboot.sh)
+
+<span style="color:var(--muted)"># Variante B — PyPI direkt:</span>
+pipx install xed-cca</code></pre>
+
+<h2>Verben (analog <code>apt</code>)</h2>
+
+<pre><code>cca list                     <span style="color:var(--muted)"># verfügbare Apps mit Status</span>
+cca install gnome            <span style="color:var(--muted)"># App installieren</span>
+cca install ghost --dry-run  <span style="color:var(--muted)"># nur Plan zeigen</span>
+cca menu                     <span style="color:var(--muted)"># interaktive TUI (Stub, Textual kommt später)</span>
+cca --version
+cca --help</code></pre>
+
+<h2>Apps-Roadmap</h2>
+
+<table>
+  <thead>
+    <tr><th>App</th><th>Beschreibung</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>gnome</code></td><td>Vanilla Gnome Desktop (Debian: <code>gnome-core</code>, Ubuntu: <code>vanilla-gnome-desktop</code>)</td><td>Stub</td></tr>
+    <tr><td><code>ghost</code></td><td>Ghost Headless CMS / Blog-Engine</td><td>Stub</td></tr>
+    <tr><td><code>wordops</code></td><td>LEMP-Stack-Manager (NGINX + PHP-FPM + MariaDB)</td><td>Stub</td></tr>
+    <tr><td><code>miab</code></td><td>Mail-in-a-Box (vollständiger Mail-Server-Stack)</td><td>Stub</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Geplant für künftige Sessions: <code>nextcloud</code>, <code>gitea</code>,
+  <code>xrdp</code>, <code>nginx-rp</code>, weitere.
+</p>
+
+<footer>
+  XED /CCA — Teil der <a href="https://github.com/XED-dev">XED-Tools-Familie</a>
+  (TUI · Edit · Studio · XP · Restore · CCC · CCA). MIT-Lizenziert.
+</footer>
+
+</body>
+</html>
