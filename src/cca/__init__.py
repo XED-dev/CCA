@@ -1,4 +1,4 @@
-"""xed-cca — cBUZZ Container App-Installation.
+"""xed-cca — cBOX@ /Container App-Installation.
 
 Atomare App-Installation in LXC-Boxen. Pendant zu xed-ccc:
 - ccc verwaltet Container-Lifecycle + Rollen-Kompositionen (lxcHOST/pmDESK/...)

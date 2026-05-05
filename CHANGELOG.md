@@ -5,6 +5,23 @@ Alle bemerkenswerten Änderungen an `xed-cca` werden hier dokumentiert.
 Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.0.4] — 2026-05-04
+
+### Geändert
+
+- **Branding aktualisiert** — `cBUZZ Container App-Installation` →
+  `cBOX@ /Container App-Installation`. Konsistente Brand-Identität für
+  cBOX.at/YOU by XED.dev Tools via Collective Context (CC).
+- `pyproject.toml` description + Typer-CLI-Help + README.md + Pages-Landing
+  (`docs/index.html`: Title + h1 + Footer) konsistent gebrandet.
+- keyword in `pyproject.toml`: `cbuzz` → `cbox`.
+
+### Architektur
+
+Keine Code-Logic-Änderung — reines Brand-Update als Patch-Bump.
+
+[0.0.4]: https://github.com/XED-dev/CCA/releases/tag/v0.0.4
+
 ## [0.0.3] — 2026-05-04
 
 ### Bug-Fix

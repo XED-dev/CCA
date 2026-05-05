@@ -1,4 +1,4 @@
-# XED /CCA — cBUZZ Container App-Installation
+# XED /CCA — cBOX@ /Container App-Installation
 
 > **Atomare App-Stack-Installation für LXC-Boxen** — Pendant zu
 > [xed-ccc](https://github.com/XED-dev/CCC) (Container-Lifecycle).

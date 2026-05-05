@@ -21,10 +21,11 @@ from cca.apps import AVAILABLE_APPS, get_app
 
 app = typer.Typer(
     name="cca",
-    help="cBUZZ Container App-Installation — App-Stack-Manager für LXC-Boxen.\n\n"
+    help="cBOX@ /Container App-Installation — App-Stack-Manager für LXC-Boxen.\n\n"
     "Atomare App-Installation in der aktuellen LXC-Box: gnome (Desktop),\n"
     "ghost (Blog/CMS), wordops (LEMP-Manager), miab (Mail-in-a-Box) usw.\n\n"
-    "Pendant zu xed-ccc (Container-Lifecycle + Rollen): cca = atomare Apps.",
+    "Pendant zu xed-ccc (Container-Lifecycle + Rollen): cca = atomare Apps.\n\n"
+    "cBOX.at/YOU by XED.dev Tools via Collective Context (CC).",
     no_args_is_help=True,
     add_completion=False,
 )

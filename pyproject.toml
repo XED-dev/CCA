@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "xed-cca"
 dynamic = ["version"]
-description = "cBUZZ Container App-Installation — App-Stack-Manager für LXC-Boxen (Pendant zu xed-ccc Container-Lifecycle)"
+description = "cBOX@ /Container App-Installation — App-Stack-Manager für LXC-Boxen (Pendant zu xed-ccc Container-Lifecycle). cBOX.at/YOU by XED.dev Tools via Collective Context (CC)."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
@@ -20,7 +20,7 @@ keywords = [
     "cli",
     "tui",
     "cca",
-    "cbuzz",
+    "cbox",
     "ghost",
     "wordops",
     "miab",
