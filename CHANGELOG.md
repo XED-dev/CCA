@@ -5,6 +5,34 @@ Alle bemerkenswerten Änderungen an `xed-cca` werden hier dokumentiert.
 Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.0.5] — 2026-05-06
+
+### Geändert (Architektur-Refactor)
+
+- **Self-Heal-Pre-Phase auf ccc-Lib refactored** — `_self_heal_dpkg` in
+  `cca/apps/gnome.py` ist jetzt 1-Zeilen-Aufruf (`self_heal_dpkg()`) statt
+  ~30-Zeilen-Methode mit 4 inline-subprocess-Aufrufen. Cross-Repo-Import:
+  `from ccc.system.self_heal import disable_pro_notice, self_heal_dpkg`.
+- Lokal-Konstante `SNAP_REDIRECT_PACKAGES` aus `gnome.py` entfernt
+  (Single-Source-of-Truth jetzt in `ccc.system.self_heal.constants`). DRY-
+  Hygiene via Cross-Repo-Lib statt Duplikation.
+
+### Hinzugefügt
+
+- **Pro-Notice-Integration für Standalone-Path** — `_disable_pro_notice`-
+  Methode in `gnome.py`, in `apply()`-Sequenz nach `_self_heal_dpkg` + vor
+  `_setup_mozilla_apt_repo`. cca-User die `cca install gnome` direkt ohne
+  firstboot-Vorlauf aufrufen sehen jetzt keine Pro-Werbung in `apt update`.
+- Cross-Repo-Smoke-Test `tests/apps/test_gnome_imports.py` (2 Cases:
+  GnomeApp-Import + `ccc.system.self_heal` Re-Exports validieren).
+
+### Geändert (Dependency-Bump)
+
+- `pyproject.toml` dependencies: neu `xed-ccc>=0.1.0` (war ohne Constraint).
+  Ermöglicht Cross-Repo-Lib-Imports im stable Release-Channel.
+
+[0.0.5]: https://github.com/XED-dev/CCA/releases/tag/v0.0.5
+
 ## [0.0.4] — 2026-05-04
 
 ### Geändert

@@ -24,6 +24,8 @@ from typing import Iterable
 
 from rich.console import Console
 
+from ccc.system.self_heal import disable_pro_notice, self_heal_dpkg
+
 from cca.apps.base import App
 
 console = Console()
@@ -47,16 +49,9 @@ DISPLAY_STACK_PACKAGES: tuple[str, ...] = (
 # Debian (bookworm/bullseye) hat firefox-esr ohne snap-Wrapper, kein Repo nötig.
 UBUNTU_CODENAMES: frozenset[str] = frozenset({"noble", "jammy", "focal"})
 
-# Snap-Redirect-Pakete auf Ubuntu 22.04+ — bricht im LXC weil snapd nicht
-# zuverlässig läuft (Squashfs-mount, udev, cgroups).
-# Pattern: reference_no_snap_in_lxc.md (AI036, 2026-05-04).
-SNAP_REDIRECT_PACKAGES: tuple[str, ...] = (
-    "firefox",
-    "thunderbird",
-    "chromium-browser",
-    "gnome-software-plugin-snap",
-    "snapd",
-)
+# SNAP_REDIRECT_PACKAGES + CRITICAL_PACKAGES_WHITELIST liegen ab v0.0.5
+# in ccc.system.self_heal.constants (single source of truth fuer firstboot
+# + ccc-Rollen + cca-Apps). Import oben.
 
 # Mozilla Official APT-Repository für Firefox + Thunderbird als deb.
 # Quelle: https://packages.mozilla.org/apt
@@ -116,6 +111,7 @@ class GnomeApp(App):
         console.print()
 
         self._self_heal_dpkg()
+        self._disable_pro_notice()
         if codename in UBUNTU_CODENAMES:
             self._setup_mozilla_apt_repo()
         self._apt_update()
@@ -164,41 +160,30 @@ class GnomeApp(App):
         return env
 
     def _self_heal_dpkg(self) -> None:
-        """Self-Heal-Pre-Phase. Idempotent: no-op auf sauberem System.
+        """Self-Heal-Pre-Phase via ccc.system.self_heal.self_heal_dpkg Composite.
 
-        Vier Schritte:
-        1. Snap-Redirect-Pakete entfernen — bricht im LXC ohne snapd.
-        2. dpkg --configure -a — finalisiert halb-konfigurierte Pakete.
-        3. apt-get install -f -y — fixt broken dependencies.
-        4. apt-get autoremove --purge -y — räumt orphaned locale-Pakete.
-
-        check=False für 1+2 (dürfen scheitern wenn nicht broken),
-        check=True für 3+4 (wenn die scheitern, bricht alles).
+        Lib uebernimmt: snap-Redirect-Purge mit Cascade-Schutz (safe_purge),
+        dpkg --configure -a, apt-get install -f, apt-get autoremove --purge.
+        DEBIAN_FRONTEND=noninteractive wird Lib-intern gesetzt (cca-Standalone-
+        Path-Schutz). Defaults SNAP_REDIRECT_PACKAGES + CRITICAL_PACKAGES_WHITELIST
+        kommen aus ccc.system.self_heal.constants.
         """
-        console.print("[cyan]→ Self-Heal: snap-Redirect-Pakete entfernen[/cyan]")
-        subprocess.run(
-            ["apt-get", "purge", "-y", *SNAP_REDIRECT_PACKAGES],
-            env=self._apt_env(),
-            check=False,
+        console.print(
+            "[cyan]→ Self-Heal: dpkg/apt-State "
+            "(snap-purge + dpkg-cfg + apt-fix + autoremove via Lib)[/cyan]"
         )
-        console.print("[cyan]→ Self-Heal: dpkg --configure -a[/cyan]")
-        subprocess.run(
-            ["dpkg", "--configure", "-a"],
-            env=self._apt_env(),
-            check=False,
-        )
-        console.print("[cyan]→ Self-Heal: apt-get install -f -y[/cyan]")
-        subprocess.run(
-            ["apt-get", "install", "-f", "-y"],
-            env=self._apt_env(),
-            check=True,
-        )
-        console.print("[cyan]→ Self-Heal: apt-get autoremove --purge -y[/cyan]")
-        subprocess.run(
-            ["apt-get", "autoremove", "--purge", "-y"],
-            env=self._apt_env(),
-            check=True,
-        )
+        self_heal_dpkg()
+
+    def _disable_pro_notice(self) -> None:
+        """Ubuntu-Pro-Werbung non-destruktiv deaktivieren via Lib-Helper.
+
+        Sub-Sprint 2 Modul #5: cca-Standalone-Path soll auch ohne firstboot
+        vorab keine Pro-Werbung in apt update zeigen (Bash-firstboot Phase 6
+        ruft self_heal_dpkg + self_heal_pro_notice IMMER zusammen — analog
+        hier UX-Entkopplung von firstboot.sh).
+        """
+        console.print("[cyan]→ Self-Heal: Ubuntu-Pro-Werbung deaktivieren[/cyan]")
+        disable_pro_notice()
 
     def _setup_mozilla_apt_repo(self) -> None:
         """Setup Mozilla Official APT-Repository für Firefox-deb statt
